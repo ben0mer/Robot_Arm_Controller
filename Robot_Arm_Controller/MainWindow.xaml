@@ -3,44 +3,476 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Robot_Arm_Controller"
+        xmlns:local="clr-namespace:Robot_Arm_Controller" xmlns:h="http://helix-toolkit.org/wpf"
         mc:Ignorable="d"
-        Title="MainWindow" Height="900" Width="1440">
+        Title="MainWindow" Height="928" Width="1440">
+    <Window.Resources>
+        <Style x:Key="FocusVisual">
+            <Setter Property="Control.Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Rectangle Margin="2" StrokeDashArray="1 2" Stroke="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" SnapsToDevicePixels="true" StrokeThickness="1"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <SolidColorBrush x:Key="Button.Static.Background" Color="#FFDDDDDD"/>
+        <SolidColorBrush x:Key="Button.Static.Border" Color="#FF707070"/>
+        <SolidColorBrush x:Key="Button.MouseOver.Background" Color="#FFBEE6FD"/>
+        <SolidColorBrush x:Key="Button.MouseOver.Border" Color="#FF3C7FB1"/>
+        <SolidColorBrush x:Key="Button.Pressed.Background" Color="#FFC4E5F6"/>
+        <SolidColorBrush x:Key="Button.Pressed.Border" Color="#FF2C628B"/>
+        <SolidColorBrush x:Key="Button.Disabled.Background" Color="#FFF4F4F4"/>
+        <SolidColorBrush x:Key="Button.Disabled.Border" Color="#FFADB2B5"/>
+        <SolidColorBrush x:Key="Button.Disabled.Foreground" Color="#FF838383"/>
+        <Style x:Key="CurvedButton" TargetType="{x:Type Button}">
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+            <Setter Property="Background" Value="{StaticResource Button.Static.Background}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Button.Static.Border}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="border" CornerRadius="15" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="0,0,0,0" SnapsToDevicePixels="true">
+                            <ContentPresenter x:Name="contentPresenter" Focusable="False" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsDefaulted" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Background" TargetName="border" Value="#EAB01E"/>
+                                <Setter Property="BorderBrush" TargetName="border" Value="#EAB01E"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="true">
+                                <Setter Property="Background" TargetName="border" Value="#F1CA68"/>
+                                <Setter Property="BorderBrush" TargetName="border" Value="#F1CA68"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Background" TargetName="border" Value="{StaticResource Button.Disabled.Background}"/>
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource Button.Disabled.Border}"/>
+                                <Setter Property="TextElement.Foreground" TargetName="contentPresenter" Value="{StaticResource Button.Disabled.Foreground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <SolidColorBrush x:Key="TextBox.Static.Border" Color="#FFABAdB3"/>
+        <SolidColorBrush x:Key="TextBox.MouseOver.Border" Color="#FF7EB4EA"/>
+        <SolidColorBrush x:Key="TextBox.Focus.Border" Color="#FF569DE5"/>
+        <Style x:Key="TextBoxStyle1" TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TextBox.Static.Border}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="KeyboardNavigation.TabNavigation" Value="None"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="AllowDrop" Value="true"/>
+            <Setter Property="ScrollViewer.PanningMode" Value="VerticalFirst"/>
+            <Setter Property="Stylus.IsFlicksEnabled" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="border" CornerRadius="5"  Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Opacity" TargetName="border" Value="0.56"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource TextBox.MouseOver.Border}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource TextBox.Focus.Border}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsInactiveSelectionHighlightEnabled" Value="true"/>
+                        <Condition Property="IsSelectionActive" Value="false"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="SelectionBrush" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
     <Border Background="#1E1E1E">
         <!-- Arka plan rengi -->
+
         <Grid Margin="10,10,10,10">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.40*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="0.40*"/>
+                <ColumnDefinition Width="317*"/>
+                <ColumnDefinition Width="16*"/>
+                <ColumnDefinition Width="756*"/>
+                <ColumnDefinition Width="10*"/>
+                <ColumnDefinition Width="308*"/>
+                <ColumnDefinition Width="13*"/>
             </Grid.ColumnDefinitions>
-            <!--<Grid.RowDefinitions>
-                <RowDefinition Height="0.40*"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="0.40*"/>
-            </Grid.RowDefinitions>-->
+
+            <!-- SOL PANEL -->
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="0.30*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="0.40*"/>
+                    <RowDefinition Height="136*"/>
+                    <RowDefinition Height="273*"/>
+                    <RowDefinition Height="199*"/>
+                    <RowDefinition Height="256*"/>
+
                 </Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="#2F2F2F" CornerRadius="20" Margin="0,0,20,22" />
+                <Border Background="#2F2F2F" CornerRadius="20" Margin="0,136,0,0" Grid.RowSpan="2" />
 
                 <!-- Bağlantı Paneli-->
                 <Grid Grid.Row="0">
-                    <Border Background="#2F2F2F" CornerRadius="20"/>
-                    <Label Content="COM PORT:" HorizontalAlignment="Left" Margin="10,24,0,91" Foreground="White" FontSize="20" FontWeight="Bold" />
-                    <ComboBox x:Name="comboBox" HorizontalAlignment="Left" Margin="134,30,0,0" VerticalAlignment="Top" Width="166" Height="26" FontSize="16" FontWeight="Bold" />
-                    <Button x:Name="baglanBtn" Content="Bağlan" HorizontalAlignment="Left" Margin="25,82,0,0" VerticalAlignment="Top" Width="118" Height="47" FontSize="16" FontWeight="Bold" Click="button_Click"/>
-                    <Button x:Name="baglantiKesBtn" Content="Bağlantı Kes" HorizontalAlignment="Left" Margin="169,82,0,0" VerticalAlignment="Top" Width="118" Height="47" FontSize="16" FontWeight="Bold" Click="button_Click"/>
+
+                    <TextBlock Text="COM Port:" HorizontalAlignment="Left" Margin="25,22,0,0" VerticalAlignment="Top" Foreground="White" FontSize="16" FontWeight="Bold" RenderTransformOrigin="0.876,0.707" FontFamily="Bahnschrift SemiBold" />
+                    <!--<Label Content="COM PORT:" HorizontalAlignment="Left" Margin="10,24,0,80" Foreground="White" FontSize="20" FontWeight="Bold" />-->
+                    <ComboBox x:Name="comboBox" HorizontalAlignment="Left" Margin="118,20,0,0" VerticalAlignment="Top" Width="142" Height="26" FontSize="16" FontWeight="Bold" Background="#FF525151" Foreground="Black" IsEditable="True" />
+                    <Button Style="{DynamicResource CurvedButton}" x:Name="baglanBtn"  Content="Bağlan" HorizontalAlignment="Left" Margin="25,64,0,0" VerticalAlignment="Top" Width="118" Height="36" FontSize="16" FontWeight="Bold" Click="button_Click" Background="#FF45C63A" Foreground="White" BorderThickness="0,0,2,2" BorderBrush="#FF252525" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Button Style="{DynamicResource CurvedButton}" x:Name="baglantiKesBtn" Content="Bağlantı Kes" HorizontalAlignment="Left" Margin="158,64,0,0" VerticalAlignment="Top" Width="118" Height="36" FontSize="16" FontWeight="Bold" Click="button_Click" Background="#FFC6423A" Foreground="White" TextBlock.FontFamily="Bahnschrift SemiBold"/>
                 </Grid>
 
                 <!-- Eklem Açıları Paneli-->
-                <Grid Grid.Row="1">
-                    <Border Background="#2F2F2F" CornerRadius="20" Margin="0,10,0,10"/>
-                    
+                <Grid Margin="0,136,0,0" Grid.RowSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.15*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="0.30*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <!-- Açıklama Satırı-->
+                        <RowDefinition Height="30"/>
+                        <!--J1 Satırı-->
+                        <RowDefinition Height="30"/>
+                        <!--J2 Satırı-->
+                        <RowDefinition Height="30"/>
+                        <!--J3 Satırı-->
+                        <RowDefinition Height="30"/>
+                        <!--J4 Satırı-->
+                        <RowDefinition Height="30"/>
+                        <!--J5 Satırı-->
+                        <RowDefinition Height="30"/>
+                        <!--J6 Satırı-->
+                        <RowDefinition Height="50"/>
+                        <!-- Buton Satırı-->
+                    </Grid.RowDefinitions>
+
+                    <Label Content="İLERİ KİNEMATİK" HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="White" FontSize="18" FontWeight="Bold" TextBlock.FontFamily="Bahnschrift SemiBold" Background="{x:Null}" Grid.ColumnSpan="2" Margin="11,11,0,0"/>
+                    <!-- Label -->
+                    <Label Content="J1" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Grid.Row="1" Margin="0,-7,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Label Content="J2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Grid.Row="2" Margin="0,-7,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Label Content="J3" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Grid.Row="3" Margin="0,-7,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Label Content="J4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Grid.Row="4" Margin="0,-7,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Label Content="J5" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Grid.Row="5" Margin="0,-7,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Label Content="J6" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Grid.Row="6" Margin="0,-7,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <!-- Slider -->
+                    <Slider x:Name="joint1" Value="{Binding Value}" HorizontalAlignment="Left"  VerticalAlignment="Top" Width="210"  Maximum="90" Minimum="-90" ValueChanged="joint_ValueChanged" LargeChange="0.1" TickFrequency="0.1" Height="22" Grid.Column="1" Grid.Row="1" Background="Transparent" BorderBrush="Transparent" Foreground="#FFE5E5E5"/>
+                    <Slider x:Name="joint2" HorizontalAlignment="Left" VerticalAlignment="Top" Width="210" Maximum="90" Minimum="-90" ValueChanged="joint_ValueChanged" LargeChange="0.1" TickFrequency="0.1" Height="22" Grid.Column="1" Grid.Row="2"/>
+                    <Slider x:Name="joint3" HorizontalAlignment="Left" VerticalAlignment="Top" Width="210" Maximum="100" Minimum="-100" ValueChanged="joint_ValueChanged" LargeChange="0.1" TickFrequency="0.1" Height="22" Grid.Column="1" Grid.Row="3"/>
+                    <Slider x:Name="joint4" HorizontalAlignment="Left" VerticalAlignment="Top" Width="210" Maximum="120" Minimum="-120" ValueChanged="joint_ValueChanged" LargeChange="0.1" TickFrequency="0.1" Height="22" Grid.Column="1" Grid.Row="4"/>
+                    <Slider x:Name="joint5" HorizontalAlignment="Left" VerticalAlignment="Top" Width="210" Maximum="90" Minimum="-90" ValueChanged="joint_ValueChanged" LargeChange="0.1" TickFrequency="0.1" Height="22" Grid.Column="1" Grid.Row="5" />
+                    <Slider x:Name="joint6" HorizontalAlignment="Left" VerticalAlignment="Top" Width="210" Maximum="0" Minimum="-30" ValueChanged="joint_ValueChanged" Height="22" TickFrequency="0.1" Grid.Column="1" Grid.Row="6"/>
+                    <!-- TextBox -->
+                    <TextBox Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding Value, ElementName=joint1, Mode=TwoWay, StringFormat=\{0:F\}}" VerticalAlignment="Top" Width="54" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" Grid.Column="2" Grid.Row="1" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding Value, ElementName=joint2, Mode=TwoWay, StringFormat=\{0:F\}}" VerticalAlignment="Top" Width="54" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" Grid.Column="2" Grid.Row="2" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding Value, ElementName=joint3, Mode=TwoWay, StringFormat=\{0:F\}}" VerticalAlignment="Top" Width="54" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" Grid.Column="2" Grid.Row="3" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding Value, ElementName=joint4, Mode=TwoWay, StringFormat=\{0:F\}}" VerticalAlignment="Top" Width="54" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" Grid.Column="2" Grid.Row="4" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding Value, ElementName=joint5, Mode=TwoWay, StringFormat=\{0:F\}}" VerticalAlignment="Top" Width="54" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" Grid.Column="2" Grid.Row="5" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding Value, ElementName=joint6, Mode=TwoWay, StringFormat=\{0:F\}}" VerticalAlignment="Top" Width="54" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" Grid.Column="2" Grid.Row="6" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <!-- Buton -->
+                    <Button Style="{DynamicResource CurvedButton}" x:Name="joint1Btn" Content="Pozisyon Kaydet" HorizontalAlignment="Left" Margin="0,0,0,0" VerticalAlignment="Top" Width="105" Height="35" Grid.Column="1" Grid.Row="7" Click="jointBtn_Click" FontWeight="Bold" Foreground="White" Background="#FF008CC8" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Button Style="{DynamicResource CurvedButton}" x:Name="joint2Btn" Content="Pozisyon Ayarla" HorizontalAlignment="Right" Margin="0,0,0,0" VerticalAlignment="Top" Width="105" Height="35" Grid.Column="1" Grid.Row="7" Click="jointBtn_Click" FontWeight="Bold" Foreground="White" Background="#FF008CC8" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+
+                </Grid>
+                <Border Grid.Row="2" Background="#2F2F2F" CornerRadius="20" Margin="0,23,0,52" />
+                <Grid Grid.Row="2" Margin="0,23,0,0" Grid.RowSpan="2">
+                    <Label Content="X" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Margin="3,36,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox x:Name="TbX" Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap"  VerticalAlignment="Top" Width="52" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" TextBlock.FontFamily="Bahnschrift SemiBold" Margin="33,43,0,0"/>
+                    <Label Content="Y" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Margin="106,36,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox x:Name="TbY" Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap"  VerticalAlignment="Top" Width="52" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" TextBlock.FontFamily="Bahnschrift SemiBold" Margin="136,43,0,0"/>
+                    <Label Content="Z" HorizontalAlignment="Left" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Margin="205,36,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <TextBox x:Name="TbZ" Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap"  VerticalAlignment="Top" Width="52" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" TextBlock.FontFamily="Bahnschrift SemiBold" Margin="235,43,0,0"/>
+                    <Button Style="{DynamicResource CurvedButton}" x:Name="inverseStart" Content="Pozisyona Git" HorizontalAlignment="Center" Margin="0,71,0,0" VerticalAlignment="Top" Width="257" Height="35" Click="StartInverseKinematics" FontWeight="Bold" Foreground="White" Background="#FF008CC8" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+                    <Label Content="TERS KİNEMATİK" HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="White" FontSize="18" FontWeight="Bold" TextBlock.FontFamily="Bahnschrift SemiBold" Background="{x:Null}" Margin="10,11,0,0"/>
+
+                </Grid>
+                <Border Grid.Row="3" Background="#2F2F2F" CornerRadius="20" Margin="0,23,0,30" />
+                <Grid Grid.Row="3">
+                    <Slider x:Name="jointSelector" Value="{Binding Value}" HorizontalAlignment="Left"  VerticalAlignment="Top" Width="162"  Maximum="6" Minimum="0" TickFrequency="0.1" Height="22" Background="Transparent" BorderBrush="Transparent" Foreground="#FFE5E5E5" ValueChanged="jointSelector_ValueChanged" SmallChange="1" IsSnapToTickEnabled="True" Margin="85,45,0,0"/>
+                    <TextBox Style="{DynamicResource TextBoxStyle1}" HorizontalAlignment="Left" TextWrapping="Wrap" Text="{Binding Value, ElementName=jointSelector, Mode=TwoWay, StringFormat=\{0:F\}}" VerticalAlignment="Top" Width="53" Background="{x:Null}" Foreground="#FFD4D4D4" FontWeight="Bold" BorderBrush="#FFA4A4A4" BorderThickness="1,1,1,1" TextBlock.FontFamily="Bahnschrift SemiBold" Margin="254,45,0,0"/>
+                    <Label Content="Eklem No" HorizontalAlignment="Left" VerticalAlignment="Top" Width="70" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Grid.Column="0" Margin="10,41,0,0" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+
+                    <Label Content="X" HorizontalAlignment="Left" Margin="50,76,0,0" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <CheckBox x:Name="jointXAxis" Content="" HorizontalAlignment="Left" Margin="80,85,0,0" VerticalAlignment="Top" Checked="CheckBox_StateChanged" Unchecked="CheckBox_StateChanged"/>
+                    <Label Content="Y" HorizontalAlignment="Left" Margin="126,76,0,0" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <CheckBox x:Name="jointYAxis" Content="" HorizontalAlignment="Left" Margin="156,85,0,0" VerticalAlignment="Top" Checked="CheckBox_StateChanged" Unchecked="CheckBox_StateChanged"/>
+                    <Label Content="Z" HorizontalAlignment="Left" Margin="204,76,0,0" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <CheckBox x:Name="jointZAxis" Content="" HorizontalAlignment="Left" Margin="234,85,0,0" VerticalAlignment="Top" Checked="CheckBox_StateChanged" Unchecked="CheckBox_StateChanged"/>
+
+                    <Slider x:Name="jointX" HorizontalAlignment="Left" Margin="50,0,0,0" VerticalAlignment="Center" Width="207"  Maximum="3000" ValueChanged="rotationPointChanged" Height="22" SmallChange="1" IsSnapToTickEnabled="True" Minimum="-3000"/>
+                    <Label Content="X" Width="29" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" TextBlock.FontFamily="Bahnschrift SemiBold" HorizontalAlignment="Left" Margin="14,0,0,0" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <Label x:Name="jointXValue" Margin="257,113,1,117" Content="{Binding Value, ElementName=jointX}" Foreground="White" FontSize="12" FontWeight="Bold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextBlock.FontFamily="Bahnschrift SemiBold" RenderTransformOrigin="0.435,0.634"/>
+
+                    <Slider x:Name="jointY" HorizontalAlignment="Left" Margin="50,152,0,0" VerticalAlignment="Top" Width="207"  Maximum="3000" ValueChanged="rotationPointChanged" Height="22" SmallChange="1" IsSnapToTickEnabled="True" Minimum="-3000"/>
+                    <Label Content="Y" HorizontalAlignment="Left" Margin="14,148,0,0" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" TextBlock.FontFamily="Bahnschrift SemiBold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <Label x:Name="jointYValue" Margin="256,148,1,80"  Content="{Binding Value, ElementName=jointY}" Foreground="White" FontSize="12" FontWeight="Bold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+
+                    <Slider x:Name="jointZ" HorizontalAlignment="Left" Margin="50,187,0,0" VerticalAlignment="Top" Width="207"  Maximum="3000" ValueChanged="rotationPointChanged" Height="22" SmallChange="1" IsSnapToTickEnabled="True" Minimum="-3000"/>
+                    <Label Content="Z" HorizontalAlignment="Left" Margin="14,183,0,0" VerticalAlignment="Top" Width="30" Foreground="White" FontSize="14" FontWeight="Bold" Height="30" TextBlock.FontFamily="Bahnschrift SemiBold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <Label x:Name="jointZValue" Margin="256,183,1,51" Content="{Binding Value, ElementName=jointZ}" Height="22" Foreground="White" FontSize="12" FontWeight="Bold" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" TextBlock.FontFamily="Bahnschrift SemiBold"/>
+
                 </Grid>
             </Grid>
+
+            <!-- ORTA PANEL -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="77*"/>
+                    <RowDefinition Height="659*"/>
+                    <RowDefinition Height="128*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Durum Paneli -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110*"/>
+                        <ColumnDefinition Width="61*"/>
+                        <ColumnDefinition Width="45*"/>
+                        <ColumnDefinition Width="63*"/>
+                        <ColumnDefinition Width="99*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Background="#2F2F2F" CornerRadius="20" Margin="-10,0,2,-10" />
+                    <Grid Grid.Column="0" Margin="0,0,2,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="20*"/>
+                            <RowDefinition Height="28*"/>
+                            <RowDefinition Height="28*"/>
+                        </Grid.RowDefinitions>
+                        <Label Content="ROBOT KOLUN ANLIK AÇILARI" HorizontalAlignment="Center" VerticalAlignment="Top"  Foreground="White" FontSize="12" FontWeight="Bold" Width="200" Height="23" FontFamily="Bahnschrift SemiBold" Grid.RowSpan="2"/>
+                        <Grid Grid.Row="1" Margin="0,3,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="J1:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="J2:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="1" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="J3:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="2" FontFamily="Bahnschrift SemiBold"/>
+
+                            <Label Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="0" Margin="35,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="1" Margin="35,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="2" Margin="35,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                        </Grid>
+                        <Grid Grid.Row="2" Margin="0,1,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="J4:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="J5:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="1" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="J6:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="2" FontFamily="Bahnschrift SemiBold"/>
+
+                            <Label Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="0" Margin="35,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="1" Margin="35,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="2" Margin="35,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                        </Grid>
+
+                    </Grid>
+
+                    <Grid Grid.Column="2" Margin="0,0,1,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="20*"/>
+                            <RowDefinition Height="20*"/>
+                        </Grid.RowDefinitions>
+                        <Border Background="#FFC6423A" CornerRadius="10"  Margin="0,0,0,0" Grid.Row="1"/>
+                        <Label Content="DURUM" HorizontalAlignment="Center" VerticalAlignment="Center"  Foreground="White" FontSize="20" FontWeight="Bold" Width="80" Height="28" FontFamily="Bahnschrift SemiBold"/>
+                        <Label Content="Bağlantı Yok" HorizontalAlignment="Center" VerticalAlignment="Center"  Foreground="White" FontSize="12" FontWeight="Bold" Width="80" Height="23" FontFamily="Bahnschrift SemiBold" Grid.Row="1"/>
+
+                    </Grid>
+                    <Border Grid.Column="3" Background="#2F2F2F" CornerRadius="20" Grid.ColumnSpan="2" Margin="113,0,0,-10" />
+
+                    <Grid Grid.Column="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="4*"/>
+                            <RowDefinition Height="3*"/>
+                        </Grid.RowDefinitions>
+                        <Label Content="ROBOT KOLUN UCUNUN KONUMU" HorizontalAlignment="Center" VerticalAlignment="Center"  Foreground="White" FontSize="12" FontWeight="Bold" Width="200" Height="25" FontFamily="Bahnschrift SemiBold"/>
+                        <Grid Margin="0,32,0,15" Grid.RowSpan="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="X:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="Y:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="1" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="Z:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="2" FontFamily="Bahnschrift SemiBold"/>
+
+                            <Label x:Name="Tx" Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="0" Margin="20,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label x:Name="Ty" Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="1" Margin="20,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label x:Name="Tz" Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="2" Margin="20,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                        </Grid>
+                        <Grid Margin="0,11,0,-8" Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="X:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="Y:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="1" FontFamily="Bahnschrift SemiBold"/>
+                            <Label Content="Z:" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="30" Grid.Column="2" FontFamily="Bahnschrift SemiBold"/>
+
+                            <Label x:Name="Tx_Copy" Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="0" Margin="20,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label x:Name="Ty_Copy" Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="1" Margin="20,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                            <Label x:Name="Tz_Copy" Content="0.00" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="White" FontSize="12" FontWeight="Bold" Width="46" Grid.Column="2" Margin="20,0,0,0" FontFamily="Bahnschrift SemiBold"/>
+                        </Grid>
+
+                    </Grid>
+                </Grid>
+                <!-- Animasyon Paneli -->
+                <Grid Margin="0,61,0,0" Grid.RowSpan="2">
+                    <h:HelixViewport3D x:Name="viewPort3d" ViewCubeHeight="100" ViewCubeWidth="100" ViewCubeVerticalPosition="Bottom" CoordinateSystemLabelForeground="White" CoordinateSystemVerticalPosition="Center" CoordinateSystemHorizontalPosition="Right" CoordinateSystemHeight="200" CoordinateSystemWidth="200" RenderOptions.BitmapScalingMode="LowQuality" RenderOptions.EdgeMode="Unspecified" IsManipulationEnabled="True" IsViewCubeEdgeClicksEnabled="True" Margin="10,36,10,0" LimitFPS="False" ShowFrameRate="True" ViewCubeOpacity="2">
+                        <h:HelixViewport3D.Background>
+                            <SolidColorBrush Color="#1E1E1E"/>
+                        </h:HelixViewport3D.Background>
+
+                        <!-- Remember to add light to the scene -->
+                        <h:GridLinesVisual3D Width="16000" Length="16000" Thickness="5" MinorDistance="100" MajorDistance="400" Fill="Black" />
+                        <h:DefaultLights/>
+                    </h:HelixViewport3D>
+                </Grid>
+
+                <!-- Buton Paneli -->
+                <Border Background="#2F2F2F" CornerRadius="20" Grid.Row="2" Margin="0,10,0,0"/>
+                <Grid Grid.Row="2" Margin="0,10,0,0">
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="9*"/>
+                        <ColumnDefinition Width="99*"/>
+                        <ColumnDefinition Width="108*"/>
+                        <ColumnDefinition Width="108*"/>
+                        <ColumnDefinition Width="108*"/>
+                        <ColumnDefinition Width="108*"/>
+                        <ColumnDefinition Width="108*"/>
+                        <ColumnDefinition Width="98*"/>
+                        <ColumnDefinition Width="10*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="0.50*"/>
+                        <RowDefinition Height="0.50*"/>
+                    </Grid.RowDefinitions>
+                    <Button x:Name="btn1" Foreground="White" Style="{DynamicResource CurvedButton}" Content="Pozisyona Git" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn2" Foreground="White" Style="{DynamicResource CurvedButton}"  HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="2" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold">
+                        <Button.Content>
+                            <TextBlock TextWrapping="Wrap" TextAlignment="Center">
+                                Sıfır Konumuna Git
+                            </TextBlock>
+                        </Button.Content>
+                    </Button>
+                    <Button x:Name="btn3" Foreground="White" Style="{DynamicResource CurvedButton}" Content="3" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="3" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn4" Foreground="White" Style="{DynamicResource CurvedButton}" Content="4" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="4" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn5" Foreground="White" Style="{DynamicResource CurvedButton}" Content="5" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="5" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn6" Foreground="White" Style="{DynamicResource CurvedButton}" Content="6" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="6" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn7" Foreground="White" Style="{DynamicResource CurvedButton}" Content="7" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="7" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn8" Foreground="White" Style="{DynamicResource CurvedButton}" Content="Hareket Et" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="1" Grid.Row="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn9" Foreground="White" Style="{DynamicResource CurvedButton}"  HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="2" Grid.Row="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold">
+                        <Button.Content>
+                            <TextBlock TextWrapping="Wrap" TextAlignment="Center">
+        Sıfır Konumunu Olarak Ayarla
+                            </TextBlock>
+                        </Button.Content>
+                    </Button>
+                    <Button x:Name="btn10" Foreground="White" Style="{DynamicResource CurvedButton}" Content="10" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="3" Grid.Row="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn11" Foreground="White" Style="{DynamicResource CurvedButton}" Content="11" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="4" Grid.Row="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn12" Foreground="White" Style="{DynamicResource CurvedButton}" Content="12" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="5" Grid.Row="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn13" Foreground="White" Style="{DynamicResource CurvedButton}" Content="13" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="6" Grid.Row="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+                    <Button x:Name="btn14" Foreground="White" Style="{DynamicResource CurvedButton}" Content="14" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="35" Grid.Column="7" Grid.Row="1" Click="btn_Click" FontSize="12" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold"/>
+
+
+
+                </Grid>
+
+            </Grid>
+
+            <!-- SAĞ PANEL -->
+            <Border Grid.Column="4" Background="#2F2F2F" CornerRadius="20"  />
+            <Grid Grid.Column="4">
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="0.60*"/>
+                    <RowDefinition Height="0.10*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="0.40*"/>
+                    </Grid.ColumnDefinitions>
+                    <ListBox x:Name="listBox" HorizontalAlignment="Center" Height="Auto" Margin="0,10,0,10" Width="200" SelectionChanged="listBox_SelectionChanged" d:ItemsSource="{d:SampleData ItemCount=5}" Background="#FF525151" Foreground="White" BorderBrush="#FF888888"/>
+                    <Grid Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="79*"/>
+                            <ColumnDefinition Width="9*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="0.166*"/>
+                            <RowDefinition Height="0.1660*"/>
+                            <RowDefinition Height="0.166*"/>
+                            <RowDefinition Height="0.166*"/>
+                            <RowDefinition Height="0.166*"/>
+                            <RowDefinition Height="0.166*"/>
+                        </Grid.RowDefinitions>
+                        <Button x:Name="btnG1" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold" Foreground="White" Style="{DynamicResource CurvedButton}" Content="Sil" HorizontalAlignment="Center" VerticalAlignment="Center" Width="80" Height="35" Click="btn_Click"/>
+                        <Button x:Name="btnG2" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold" Foreground="White" Style="{DynamicResource CurvedButton}" Content="Hepsini Sil" HorizontalAlignment="Center" VerticalAlignment="Center" Width="80" Height="35" Grid.Row="1" Click="btn_Click"/>
+                        <Button x:Name="btnG3" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold" Foreground="White" Style="{DynamicResource CurvedButton}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="80" Height="35" Grid.Row="2" Click="btn_Click">
+                            <Button.Content>
+                                <TextBlock TextWrapping="Wrap" TextAlignment="Center">
+                                    Pozisyonu Göster
+                                </TextBlock>
+                            </Button.Content>
+                        </Button>
+
+                        <Button x:Name="btnG4" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold" Foreground="White" Style="{DynamicResource CurvedButton}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="80" Height="35" Grid.Row="3" Click="btn_Click">
+                            <Button.Content>
+                                <TextBlock TextWrapping="Wrap" TextAlignment="Center">
+                                    Görev Önizleme
+                                </TextBlock>
+                            </Button.Content>
+                        </Button>
+                        <Button x:Name="btnG5" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold" Foreground="White" Style="{DynamicResource CurvedButton}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="80" Height="35" Grid.Row="4" Click="btn_Click">
+                            <Button.Content>
+                                <TextBlock TextWrapping="Wrap" TextAlignment="Center">
+                                    Görevi Kaydet
+                                </TextBlock>
+                            </Button.Content>
+                        </Button>
+                        <Button x:Name="btnG6" Background="#FF008CC8" FontFamily="Bahnschrift SemiBold" Foreground="White" Style="{DynamicResource CurvedButton}" Content="Görev Yükle" HorizontalAlignment="Center" VerticalAlignment="Center" Width="80" Height="35" Grid.Row="5" Click="btn_Click"/>
+
+                    </Grid>
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <Button x:Name="btnGBasla" Background="#FF46C800" FontFamily="Bahnschrift SemiBold" Foreground="White" Style="{DynamicResource CurvedButton}" Content="Göreve Başla" HorizontalAlignment="Center" VerticalAlignment="Center" Width="215" Height="35" Click="btn_Click" FontSize="16"/>
+                </Grid>
+                <Grid Grid.Row="2">
+                    <TextBox HorizontalAlignment="Center" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Center" Width="288" Height="468" Background="#FF525151" BorderBrush="#FF7B7A7A" SelectionBrush="#FF10D700" Foreground="White"/>
+
+                </Grid>
+
+            </Grid>
+
         </Grid>
     </Border>
 </Window>
