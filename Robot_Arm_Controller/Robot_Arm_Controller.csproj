@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="HelixToolkit" Version="2.24.0" />
     <PackageReference Include="HelixToolkit.Wpf" Version="2.24.0" />
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

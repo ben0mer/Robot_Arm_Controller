@@ -15,12 +15,14 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.IO.Ports;
 using HelixToolkit.Wpf;
 using System.IO;
 using System.ComponentModel;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
+using System.Windows.Markup;
 
 namespace Robot_Arm_Controller
 {
@@ -30,6 +32,8 @@ namespace Robot_Arm_Controller
         public double angle = 0;
         public double angleMin = -180;
         public double angleMax = 180;
+        public double stepPerDegree = 1;
+        public double realAngle = 0;
         public int rotPointX = 0;
         public int rotPointY = 0;
         public int rotPointZ = 0;
@@ -51,6 +55,13 @@ namespace Robot_Arm_Controller
         Model3D geom = null; //Debug sphere to check in which point the joint is rotatin
 
         List<Joint> joints = null;
+
+        BackgroundWorker bgw = new BackgroundWorker();
+        BackgroundWorker modelUpdater = new BackgroundWorker();
+        bool isAnimateMission = false;
+        bool isModelUpdater = false;
+
+        SerialPort sp = new SerialPort();
 
         bool switchingJoint = false;
         bool isAnimating = false;
@@ -79,6 +90,7 @@ namespace Robot_Arm_Controller
         // Timer
         System.Windows.Forms.Timer timer1;
 
+
 #if IRB6700
         //directroy of all stl files
         private const string MODEL_PATH8 = "J0.stl";
@@ -99,6 +111,7 @@ namespace Robot_Arm_Controller
         private const string MODEL_PATH7 = "GripperRight.stl";
         private const string MODEL_PATH8 = "GripperLeft.stl";
 #endif
+
         public MainWindow()
         {
             InitializeComponent();
@@ -140,9 +153,372 @@ namespace Robot_Arm_Controller
 
             timer1 = new System.Windows.Forms.Timer();
 
+            //Seri port nesnesi oluştur
+            
+
             timer1.Interval = 5;
             timer1.Tick += new System.EventHandler(timer1_Tick);
+            
+            modelUpdater.DoWork += (s, e) =>
+            {
+                while (isModelUpdater)
+                {
+                    bool isDifferent = false;
+                    // real angle ile value faklı ise güncelle
+                    Dispatcher.Invoke(() => 
+                    {
+                        bool isDifferent = joints[0].realAngle != joint1.Value || joints[1].realAngle != joint2.Value || joints[2].realAngle != joint3.Value || joints[3].realAngle != joint4.Value || joints[4].realAngle != joint5.Value || joints[5].realAngle != joint6.Value;
+                        });
+                    if (!isDifferent)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            joint1.Value = joints[0].realAngle;
+                            joint2.Value = joints[1].realAngle;
+                            joint3.Value = joints[2].realAngle;
+                            joint4.Value = joints[3].realAngle;
+                            joint5.Value = joints[4].realAngle;
+                            joint6.Value = joints[5].realAngle;
+                            //joint7.Value = joints[6].realAngle;
+                            //joint8.Value = joints[7].realAngle;
+                        });
+                    }
+
+                    Thread.Sleep(100);
+                }
+            };  
+
+            modelUpdater.RunWorkerCompleted += (s, e) =>
+            {
+                isModelUpdater = false;
+            };
+            
+            bgw.DoWork += (s, e) =>
+            {
+                isAnimateMission = true;
+                // gorevSimulasyon metodunun içeriğini buraya taşı
+                bgw.WorkerSupportsCancellation = true;
+
+                string[] gorevler = new string[gorevList.Items.Count];
+                for (int i = 0; i < gorevList.Items.Count; i++)
+                {
+                    gorevler[i] = gorevList.Items[i].ToString();
+                }
+                int gorevSayisi = gorevList.Items.Count;
+                int sayac = 0;
+                //
+                while (sayac < gorevSayisi-1)
+                {
+                    string data = gorevler[sayac];
+                    string dataNext = gorevler[sayac + 1];
+                    string[] degerler = data.Split('/');
+                    string[] degerlerNext = dataNext.Split('/');
+                    double j1 = Convert.ToDouble(degerler[0]);
+                    double j2 = Convert.ToDouble(degerler[1]);
+                    double j3 = Convert.ToDouble(degerler[2]);
+                    double j4 = Convert.ToDouble(degerler[3]);
+                    double j5 = Convert.ToDouble(degerler[4]);
+                    double j1Next = Convert.ToDouble(degerlerNext[0]);
+                    double j2Next = Convert.ToDouble(degerlerNext[1]);
+                    double j3Next = Convert.ToDouble(degerlerNext[2]);
+                    double j4Next = Convert.ToDouble(degerlerNext[3]);
+                    double j5Next = Convert.ToDouble(degerlerNext[4]);
+                    double dj1 = (j1Next - j1);
+                    double dj2 = (j2Next - j2);
+                    double dj3 = (j3Next - j3);
+                    double dj4 = (j4Next - j4);
+                    double dj5 = (j5Next - j5);
+
+                    //her döngüde kaç ms bekleyeceğini bul
+                    double j1Step = dj1 / 100;
+                    double j2Step = dj2 / 100;
+                    double j3Step = dj3 / 100;
+                    double j4Step = dj4 / 100;
+                    double j5Step = dj5 / 100;
+
+                    int step = 0;
+                    while(step < 100)
+                    {
+                        if (bgw.CancellationPending)
+                        {
+                            // İptal edildiyse, işlemi durdur
+                            e.Cancel = true;
+                            return;
+                        }
+                        Dispatcher.Invoke(() =>
+                        {
+                            joint1.Value = j1;
+                            joint2.Value = j2;
+                            joint3.Value = j3;
+                            joint4.Value = j4;
+                            joint5.Value = j5;
+                            
+                        });
+                        j1 += j1Step;
+                        j2 += j2Step;
+                        j3 += j3Step;
+                        j4 += j4Step;
+                        j5 += j5Step;
+                        Thread.Sleep(10);
+                        step++;
+                    }
+
+
+                    // UI thread'inde çalışan değişkenleri güncellemek için
+                    // Dispatcher.Invoke metodunu kullan
+
+                    sayac++;
+                }
+            };
+
+            // RunWorkerCompleted event handler'ını tanımla
+            // Bu metot, arka plandaki işlem bittiğinde çalışır
+            bgw.RunWorkerCompleted += (s, e) =>
+            {
+                isAnimateMission = false;
+                // İşlem bittiğinde yapmak istediğiniz şeyleri buraya yazın
+                // Örneğin, bir mesaj kutusu göster
+                btnG4.Content = "Görev Önizleme";
+                // Butonun rengini #FF008CC8 yap
+                btnG4.Background = new SolidColorBrush(ColorHelper.HexToColor("#FF008CC8"));
+                //System.Windows.MessageBox.Show("Görev simülasyonu tamamlandı.");
+            };
         }
+
+        // Seri porttaki nesneleri tarayıp verileri combox'a ekleeyen buton
+        private void btnPort_Click(object sender, RoutedEventArgs e)
+        {
+            // Seri port adlarını al
+            string[] portNames = SerialPort.GetPortNames();
+
+            // Seri port adlarını comboBox'a ekle
+            comboBox.ItemsSource = portNames;
+        }
+
+        private void baglanButon(object sender, RoutedEventArgs e)
+        {
+            // Seri port nesnesi oluştur
+            
+
+            // Seri port ayarlarını yap
+            //comboBox boş olup olmadığını kontrol et
+            if (comboBox.Text == "")
+            {
+                System.Windows.MessageBox.Show("Lütfen bir seri port seçiniz.");
+                return;
+            }
+            sp.PortName = comboBox.Text;
+            sp.BaudRate = 9600;
+            sp.Parity = Parity.None;
+            sp.DataBits = 8;
+            sp.StopBits = StopBits.One;
+
+            // Seri portu aç
+            try
+            {
+                sp.Open();
+                baglanBtn.IsEnabled = false;
+                baglantiKesBtn.IsEnabled = true;
+                durumAyarla(1);
+                sp.DataReceived += new SerialDataReceivedEventHandler(sp_DataReceived);
+            }
+            catch (Exception exc)
+            {
+                System.Windows.MessageBox.Show("Seri port açılamadı.");
+
+            }
+        }
+
+        void durumAyarla(int state)
+        {
+            if (state == 0) // Baglantı Yok
+            {
+                stateBorder.Background = new SolidColorBrush(ColorHelper.HexToColor("#FFC6423A"));
+                stateLabel.Content = "Bağlanti Yok";
+            }
+            else if (state == 1) // Hazır
+            {
+                stateBorder.Background = new SolidColorBrush(ColorHelper.HexToColor("#FF46C800"));
+                stateLabel.Content = "      Hazır";
+            }
+            else if (state == 2) // Hareket Ediyor
+            {
+                stateBorder.Background = new SolidColorBrush(ColorHelper.HexToColor("#EFD200"));
+                stateLabel.Content = "   Çalışıyor";
+            }
+            else if (state == 3) // Hata
+            {
+
+            }
+        }
+
+        private void baglantiKesButon(object sender, RoutedEventArgs e)
+        {
+
+            // Seri portu kapat
+            try
+            {
+                sp.Close();
+                baglanBtn.IsEnabled = true;
+                baglantiKesBtn.IsEnabled = false;
+                durumAyarla(0);
+
+            }
+            catch (Exception exc)
+            {
+                System.Windows.MessageBox.Show("Seri port kapatılamadı.");
+
+            }
+        }
+
+        ////Seri porttan veri geldiğinde tetiklenen fonksiyon
+        private void sp_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            // Seri porttan gelen veriyi oku
+            string data = sp.ReadLine();
+            //sp.DiscardInBuffer();
+            //datanın ilk elemanı < ise ve son elemanı > ise
+
+            //datanın içindeki < ve > işaretinin arasındaki veriyi al ve mesaj değişkenine ata
+            string message = ""; // Mesajı tutacak string
+            // < ve > işaretlerinin arasındaki veriyi al
+            foreach (char c in data)
+            {
+                if (c == '<')
+                {
+                    message = "";
+                }
+                else if (c == '>')
+                {
+                    break;
+                }
+                else
+                {
+                    message += c;
+                }
+            }
+            if (message != "")
+            {
+                // Seri porttan gelen veriyi ekrana yaz
+                Dispatcher.Invoke(() =>
+                {
+                    veriAnaliz(message);
+                    logYaz(message);
+                });
+            }
+            else
+            {
+                   // < ve > işaretleri yoksa veri geçersizdir
+                return;
+            }
+
+        }
+
+        //private void sp_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        //{
+        //    // Seri port nesnesini al
+        //    //SerialPort sp = (SerialPort)sender;
+
+        //    // Veriyi oku
+        //    string message = ""; // Mesajı tutacak string
+        //    bool start = false; // Verinin başladığını belirten bayrak
+        //    bool end = false; // Verinin bittiğini belirten bayrak
+        //    while (!end) // Veri bitene kadar döngüyü sürdür
+        //    {
+        //        int c = sp.ReadChar(); // Bir karakter oku
+        //        if (c == '<') // Karakter başlangıç işareti ise
+        //        {
+        //            start = true; // Bayrağı kaldır
+        //            //message += (char)c;
+        //        }
+        //        else if (c == '>') // Karakter bitiş işareti ise
+        //        {
+        //            end = true; // Bayrağı kaldır
+        //            //message += (char)c;
+        //        }
+        //        else if (start) // Karakter mesajın bir parçası ise
+        //        {
+        //            message += (char)c; // Stringe ekle
+        //        }
+        //    }
+
+        //    // Veriyi ana iş parçacığına gönder
+        //    Dispatcher.Invoke(() =>
+        //    {
+        //        veriAnaliz(message);
+        //        logYaz(message);
+        //    });
+        //}
+
+        //Seri porttan gelen veriyi analiz eden fonksiyon
+        private void veriAnaliz(string data)
+        {
+            // Veri boş veya null ise dön
+            if (string.IsNullOrEmpty(data))
+            {
+                return;
+            }
+            if (data == "1")
+            {
+                durumAyarla(1);
+                return;
+            }
+            else if (data == "2")
+            {
+                durumAyarla(2); // çalışıyor
+                return;
+            }
+
+            // Veriyi , işaretine göre parçala
+            string[] degerler = data.Split(',');
+            // Verinin ilk elemanı POZ ise
+            if (degerler != null && degerler[0] == "POZ")
+            {
+                // Verinin ikinci ve üçüncü elemanlarını int türüne dönüştür
+                int no = Convert.ToInt32(degerler[1]);
+                int deger = Convert.ToInt32(degerler[2]);
+                // No ya göre pozisyonu değiştir
+                joints[no].realAngle = deger / joints[no].stepPerDegree;
+                updateRealAngles();
+                return;
+            }
+            
+            else
+            {
+                // Veri geçersiz ise hata mesajı göster
+                logYaz("Geçersiz veri geldi: " + data);
+            }
+        }
+
+        //gerçek açıları değiştiren fonksiyon
+        private void updateRealAngles()
+        {
+
+            rJ1.Content = joints[0].realAngle.ToString();
+            rJ2.Content = joints[1].realAngle.ToString();
+            rJ3.Content = joints[2].realAngle.ToString();
+            rJ4.Content = joints[3].realAngle.ToString();
+            rJ5.Content = joints[4].realAngle.ToString();
+            rJ6.Content = joints[5].realAngle.ToString();
+
+            //joint1.Value = joints[0].realAngle;
+            //joint2.Value = joints[1].realAngle;
+            //joint3.Value = joints[2].realAngle;
+            //joint4.Value = joints[3].realAngle;
+            //joint5.Value = joints[4].realAngle;
+            //joint6.Value = joints[5].realAngle;
+        }
+
+        //Logları yazdıran fonksiyon, ilk önce saati alıyor, sonra logBox'a yazıyor
+        private void logYaz(string log)
+        {
+            //Yazdıkça aşağı kaydır
+            string saat = DateTime.Now.ToString("HH:mm:ss");
+            logBox.Text += "[" + saat + "] " + log + "\n";
+            logBox.ScrollToEnd();
+
+        }
+
 
         private Model3DGroup Initialize_Environment(List<string> modelsNames)
         {
@@ -198,6 +574,7 @@ namespace Robot_Arm_Controller
                 //joints[0].rotPointZ = 0;
 
                 //Omuz (Bu hareket edecek) (Z ekseninde)
+                joints[0].stepPerDegree =37.5;
                 joints[0].angleMin = -90;
                 joints[0].angleMax = 90;
                 joints[0].rotAxisX = 0;
@@ -208,6 +585,7 @@ namespace Robot_Arm_Controller
                 joints[0].rotPointZ = 650;
 
                 //Dirsek (Bu hareket edecek) (X ekseninde)
+                joints[1].stepPerDegree = 40;
                 joints[1].angleMin = -90;
                 joints[1].angleMax = 90;
                 joints[1].rotAxisX = 1;
@@ -218,6 +596,7 @@ namespace Robot_Arm_Controller
                 joints[1].rotPointZ = 2300;
 
                 //Bilek (Bu hareket edecek) (Z ekseninde)
+                joints[2].stepPerDegree = 100;
                 joints[2].angleMin = -100;
                 joints[2].angleMax = 100;
                 joints[2].rotAxisX = 1;
@@ -227,6 +606,7 @@ namespace Robot_Arm_Controller
                 joints[2].rotPointY = 0;
                 joints[2].rotPointZ = 4500;
 
+                joints[3].stepPerDegree = 2;
                 joints[3].angleMin = -120;
                 joints[3].angleMax = 120;
                 joints[3].rotAxisX = 0;
@@ -236,6 +616,7 @@ namespace Robot_Arm_Controller
                 joints[3].rotPointY = 0;
                 joints[3].rotPointZ = 5775;
 
+                joints[4].stepPerDegree = 20;
                 joints[4].angleMin = -90;
                 joints[4].angleMax = 90;
                 joints[4].rotAxisX = 1;
@@ -506,6 +887,7 @@ namespace Robot_Arm_Controller
                 isAnimating = false;
                 timer1.Stop();
                 movements = 0;
+                
             }
             else
             {
@@ -698,9 +1080,9 @@ namespace Robot_Arm_Controller
             Tx.Content = joints[4].model.Bounds.Location.X;
             Ty.Content = joints[4].model.Bounds.Location.Y;
             Tz.Content = joints[4].model.Bounds.Location.Z;
-            Tx_Copy.Content = geom.Bounds.Location.X;
-            Ty_Copy.Content = geom.Bounds.Location.Y;
-            Tz_Copy.Content = geom.Bounds.Location.Z;
+            //tx_copy.content = geom.bounds.location.x;
+            //ty_copy.content = geom.bounds.location.y;
+            //tz_copy.content = geom.bounds.location.z;
 
             return new Vector3D(joints[4].model.Bounds.Location.X, joints[4].model.Bounds.Location.Y, joints[4].model.Bounds.Location.Z);
         }
@@ -719,6 +1101,295 @@ namespace Robot_Arm_Controller
         private void listBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
 
+        }
+
+        private void pozisyonKaydet(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                //serialPort1.Write("<AYARLA" + "," + textBox_send.Text +","+ textBox_send1.Text + "," + textBox_send2.Text + "," + textBox_send3.Text + "," + textBox_send4.Text+">");
+                // textBox'lardan verileri okuyalım
+                double x = joint1.Value;
+                double y = joint2.Value;
+                double z = joint3.Value;
+                double w = joint4.Value;
+                double t = joint5.Value;
+                x = Math.Round(x, 2);
+                y = Math.Round(y, 2);
+                z = Math.Round(z, 2);
+                w = Math.Round(w, 2);
+                t = Math.Round(t, 2);
+
+
+                // verileri bir string olarak birleştirelim
+                string data = x + "/" + y + "/" + z + "/" + w + "/" + t;
+
+                // veriyi listBox'a ekleyelim
+                gorevList.Items.Add(data);
+            }
+            catch (Exception error)
+            {
+                System.Windows.Forms.MessageBox.Show(error.Message);
+            }
+        }
+
+        private void gorevSil(object sender, RoutedEventArgs e)
+        {
+            // listBox'tan seçilen öğeyi alalım
+            object item = gorevList.SelectedItem;
+
+            // eğer bir öğe seçilmişse
+            if (item != null)
+            {
+                // öğeyi listBox'tan kaldıralım
+                gorevList.Items.Remove(item);
+            }
+            // eğer bir öğe seçilmemişse
+            else
+            {
+                // bir uyarı mesajı gösterelim
+                System.Windows.MessageBox.Show("Lütfen bir öğe seçin!");
+            }
+        }
+
+        private void gorevTemizle(object sender, RoutedEventArgs e)
+        {
+            gorevList.Items.Clear();
+        }
+
+        private void gorevBasla(object sender, RoutedEventArgs e)
+        {
+            //// ListBox'taki öğe sayısını alıyoruz
+            int ogeSayisi = gorevList.Items.Count;
+
+            //// Seri porttan gönderilecek karakter dizisini oluşturuyoruz
+            string mesaj = "<GOREV," + ogeSayisi.ToString() + ",";
+
+            // listboxtaki elemanları alıp / ile ayırıp int cinsine çevirip mesaja ekliyoruz
+            
+            foreach (var item in gorevList.Items)
+            {
+                string data = item.ToString();
+                //data = data.Replace(',', '.');
+                string[] degerler = data.Split('/');
+                double[] sayilar = new double[degerler.Length]; // int tipinde bir dizi oluştur
+                for (int i = 0; i < degerler.Length; i++) // döngü ile tüm elemanları gez
+                {
+                    sayilar[i] = double.Parse(degerler[i]); // her elemanı int tipine çevir ve yeni dizinin ilgili indisine ata
+                }
+
+                mesaj += (int)sayilar[0] + "," + (int)sayilar[1] + "," + (int)sayilar[2] + "," + (int)sayilar[3] + "," + (int)sayilar[4] + ",";
+            }
+            //// Son karakteri '>' ile değiştiriyoruz
+            mesaj += ">";
+
+            //// Seri porttan mesajı gönderiyoruz
+            try
+            {
+                sp.Write(mesaj);
+            }
+            catch (Exception error)
+            {
+                System.Windows.MessageBox.Show(error.Message);
+            }
+            
+        }
+
+        private void gorevPGoster(object sender, RoutedEventArgs e)
+        {
+            // listBox'tan seçilen öğeyi alalım
+            object item = gorevList.SelectedItem;
+
+            // eğer bir öğe seçilmişse
+            if (item != null)
+            {
+                string data = item.ToString();
+                string[] degerler = data.Split('/');
+                joint1.Value = Convert.ToDouble(degerler[0]);
+                joint2.Value = Convert.ToDouble(degerler[1]);
+                joint3.Value = Convert.ToDouble(degerler[2]);
+                joint4.Value = Convert.ToDouble(degerler[3]);
+                joint5.Value = Convert.ToDouble(degerler[4]);
+                
+            }
+            // eğer bir öğe seçilmemişse
+            else
+            {
+                // bir uyarı mesajı gösterelim
+                System.Windows.MessageBox.Show("Lütfen bir öğe seçin!");
+            }
+        }
+
+        private void gorevSimulasyon(object sender, RoutedEventArgs e)
+        {
+            // BackgroundWorker çalışıyor mu diye kontrol et
+            if (!isAnimateMission)
+            {
+                // Çalışmıyorsa, çalıştır
+                bgw.RunWorkerAsync();
+                btnG4.Content = "Durdur";
+                // Butonun rengini #FFC6423A yap
+                btnG4.Background = new SolidColorBrush(ColorHelper.HexToColor("#FFC6423A"));
+                
+            }
+            else
+            {
+                bgw.CancelAsync();
+                btnG4.Content = "Görev Önizleme";
+                // Butonun rengini #FF008CC8 yap
+                btnG4.Background = new SolidColorBrush(ColorHelper.HexToColor("#FF008CC8"));
+            }
+        }
+
+        private void modelUpdaterStartStop(object sender, RoutedEventArgs e)
+        {
+            // BackgroundWorker çalışıyor mu diye kontrol et
+            if (!isModelUpdater)
+            {
+                // Çalışmıyorsa, çalıştır
+                isModelUpdater = true;
+                modelUpdater.RunWorkerAsync();
+                btn3.Content = "Durdur";
+                // Butonun rengini #FFC6423A yap
+                btn3.Background = new SolidColorBrush(ColorHelper.HexToColor("#FFC6423A"));
+
+            }
+            else
+            {
+                isModelUpdater = false;
+                //modelUpdater.CancelAsync();
+                btn3.Content = "Model Güncelle";
+                // Butonun rengini #FF008CC8 yap
+                btn3.Background = new SolidColorBrush(ColorHelper.HexToColor("#FF008CC8"));
+            }
+        }   
+
+        private void gorevKaydet(object sender, RoutedEventArgs e)
+        {
+            // Verileri kaydetmek için SaveFileDialog kullan
+            // SaveFileDialog nesnesi oluştur
+            SaveFileDialog saveFile = new SaveFileDialog();
+            // Filtreyi txt dosyaları olarak ayarla
+            saveFile.Filter = "Text File|*.txt";
+            // Pencereyi göster
+            if (saveFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                // Seçilen dosya adını al
+                string fileName = saveFile.FileName;
+                // StreamWriter nesnesi oluştur
+                StreamWriter writer = new StreamWriter(fileName);
+                // listBox'taki tüm verileri yaz
+                foreach (var item in gorevList.Items)
+                {
+                    writer.WriteLine(item.ToString());
+                }
+                // StreamWriter nesnesini kapat
+                writer.Close();
+                // Mesaj göster
+                //MessageBox.Show("Veriler başarıyla kaydedildi.");
+            }
+        }
+
+        private void gorevYukle(object sender, RoutedEventArgs e)
+        {
+            // OpenFileDialog nesnesi oluştur
+            OpenFileDialog openFile = new OpenFileDialog();
+            // Filtreyi txt dosyaları olarak ayarla
+            openFile.Filter = "Text File|*.txt";
+            // Pencereyi göster
+            if (openFile.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                // Seçilen dosya adını al
+                string fileName = openFile.FileName;
+                // Dosyadaki tüm satırları oku
+                string[] lines = File.ReadAllLines(fileName);
+                // listBox'ı temizle
+                gorevList.Items.Clear();
+                // listBox'a verileri ekle
+                foreach (var line in lines)
+                {
+                    gorevList.Items.Add(line);
+                }
+                // Mesaj göster
+                //MessageBox.Show("Veriler başarıyla yüklendi.");
+            }
+        }
+
+        private void sifiraGit(object sender, RoutedEventArgs e)
+        {
+            joint1.Value = 0;
+            joint2.Value = 0;
+            joint3.Value = 0;
+            joint4.Value = 0;
+            joint5.Value = 0;
+            
+            try
+            {
+                sp.Write("<AYARLA" + "," + "0" + "," + "0" + "," + "0" + "," + "0" + "," + "0" + ">");
+                sp.Write("<" + "KONUMAGIT" + ">");
+
+            }
+            catch (Exception error)
+            {
+                System.Windows.MessageBox.Show(error.Message);
+            }
+        }
+
+        private void pozisyonAyarla(object sender, RoutedEventArgs e)
+        {
+            // joint değerlerini int değerlere çevir
+
+            sp.Write("<AYARLA" + "," + (int)joint1.Value + "," + (int)joint2.Value + "," + (int)joint3.Value + "," + (int)joint4.Value + "," + (int)joint5.Value + ">");
+            //sp.Write("<" + "BILGI2" + ">");
+        }
+
+        private void pozisyonaGit(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                sp.Write("<" + "KONUMAGIT" + ">");
+
+            }
+            catch (Exception error)
+            {
+                System.Windows.MessageBox.Show(error.Message);
+            }
+        }
+
+        private void hareketEt(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                sp.Write("<" + "BASLA" + ">");
+
+            }
+            catch (Exception error)
+            {
+                System.Windows.MessageBox.Show(error.Message);
+            }
+        }
+
+        private void sifirAyarla(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                sp.Write("<" + "SIFIRLA" + ">");
+
+            }
+            catch (Exception error)
+            {
+                System.Windows.MessageBox.Show(error.Message);
+            }
+        }
+
+        private void gercekPozGit(object sender, RoutedEventArgs e)
+        {
+            joint1.Value = joints[0].realAngle;
+            joint2.Value = joints[1].realAngle;
+            joint3.Value = joints[2].realAngle;
+            joint4.Value = joints[3].realAngle;
+            joint5.Value = joints[4].realAngle;
+            joint6.Value = joints[5].realAngle;
         }
     }
 }
