@@ -680,6 +680,10 @@ namespace Robot_Arm_Controller
         {
             changeSelectedJoint();
         }
+        private void realJointSelector_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            
+        }
 
         private void changeSelectedJoint()
         {
@@ -899,6 +903,18 @@ namespace Robot_Arm_Controller
                 isAnimating = true;
                 timer1.Start();
             }
+        }
+
+        private void hizIvmeAyarla(object sender, RoutedEventArgs e)
+        {
+            int motorNo = Convert.ToInt32(realJointSelector.Value)-1;
+            if (motorNo < 0 || motorNo > 4)
+                return;
+            int ivme = Convert.ToInt32(ivmeAyar.Text);
+            int hiz = Convert.ToInt32(hizAyar.Text);
+            string data = "<HIZIVME," + motorNo + "," + hiz + "," + ivme + ",>";
+            sp.Write(data);
+
         }
 
         public void timer1_Tick(object sender, EventArgs e)
